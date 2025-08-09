@@ -1,0 +1,232 @@
+
+Total orders: 96,476
+Late deliveries: 7,827
+Late delivery rate: 8.1%
+SQL:
+SELECT 
+  COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) AS late_deliveries,
+  COUNT(*) AS total_delivered,
+  ROUND(COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) / COUNT(*), 1) AS late_ratio
+FROM Case_ecom.clean_table
+WHERE order_delivered_customer_date IS NOT NULL 
+  AND order_estimated_delivery_date IS NOT NULL;
+
+Orders in 2016: 272
+Late deliveries: 4
+Late delivery rate: 1.5%
+SQL:
+SELECT 
+  COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) AS late_deliveries,
+  COUNT(*) AS total_delivered,
+  ROUND(COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) / COUNT(*), 1) AS late_ratio
+FROM Case_ecom.clean_table
+WHERE order_delivered_customer_date IS NOT NULL 
+  AND order_estimated_delivery_date IS NOT NULL
+  AND purchase_date BETWEEN '2016-01-01' AND '2017-01-01';
+
+Orders in 2017: 43,498
+Late deliveries: 2,882
+Late delivery rate: 6.6%
+SQL:
+SELECT 
+  COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) AS late_deliveries,
+  COUNT(*) AS total_delivered,
+  ROUND(COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) / COUNT(*), 2) AS late_ratio
+FROM Case_ecom.clean_table
+WHERE order_delivered_customer_date IS NOT NULL 
+  AND order_estimated_delivery_date IS NOT NULL
+  AND purchase_date BETWEEN '2017-01-01' AND '2018-01-01';
+
+Orders in 2018: 52,706
+Late deliveries: 4,941
+Late delivery rate: 9.4%
+SQL:
+SELECT 
+  COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) AS late_deliveries,
+  COUNT(*) AS total_delivered,
+  ROUND(
+    COUNTIF(order_delivered_customer_date > order_estimated_delivery_date) * 100.0 / COUNT(*),
+    2
+  ) AS late_ratio
+FROM Case_ecom.clean_table
+WHERE 
+  order_delivered_customer_date IS NOT NULL 
+  AND order_estimated_delivery_date IS NOT NULL
+  AND purchase_date > '2018-01-01';
+
+Unique customers: 99,441
+SQL:
+SELECT COUNT(DISTINCT customer_unique_id) FROM Case_ecom.ecom;
+
+Average orders per customer: 1.03
+SQL:
+SELECT 
+  ROUND(
+    COUNT(DISTINCT o.order_id) * 1.0 / COUNT(DISTINCT e.customer_unique_id), 
+    2
+  ) AS avg_orders_per_customer
+FROM Case_ecom.orders_dataset o
+JOIN Case_ecom.ecom e
+  ON o.customer_id = e.customer_id;
+
+Top 10 states by number of orders:
+1. SP - 40,495
+2. RJ - 12,353
+3. MG - 11,355
+4. RS - 5,344
+5. PR - 4,923
+6. SC - 3,547
+7. BA - 3,256
+8. DF - 2,080
+9. ES - 1,995
+10. GO - 1,957
+SQL:
+SELECT 
+  c.customer_state,
+  COUNT(DISTINCT o.order_id) AS orders
+FROM Case_ecom.clean_table AS o
+JOIN Case_ecom.ecom AS c
+  ON o.customer_id = c.customer_id
+WHERE 
+  o.delivered_date IS NOT NULL
+  AND o.purchase_date IS NOT NULL
+GROUP BY 
+  c.customer_state
+ORDER BY 
+  orders DESC;
+
+Top 10 cities (within top 10 states):
+1. Sao Paulo - 15,046
+2. Rio de Janeiro - 6,604
+3. Belo Horizonte - 2,697
+4. Brasilia - 2,071
+5. Curitiba - 1,489
+6. Campinas - 1,406
+7. Porto Alegre - 1,341
+8. Salvador - 1,188
+9. Guarulhos - 1,143
+10. Sao Bernardo do Campo - 911
+SQL:
+SELECT 
+  c.customer_city,
+  COUNT(DISTINCT o.order_id) AS orders
+FROM Case_ecom.clean_table AS o
+JOIN Case_ecom.ecom AS c
+  ON o.customer_id = c.customer_id
+WHERE 
+  o.delivered_date IS NOT NULL
+  AND o.purchase_date IS NOT NULL
+  AND c.customer_state IN ('SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'DF', 'ES', 'GO')
+GROUP BY 
+  c.customer_city
+ORDER BY 
+  orders DESC;
+
+Average order approval time (hours):
+- 2016: 42
+- 2017: 9.84
+- 2018: 10.06
+SQL example:
+SELECT 
+  ROUND(AVG(TIMESTAMP_DIFF(order_approved_at, order_purchase_timestamp, HOUR)), 2) AS approve_time
+FROM Case_ecom.clean_table
+WHERE order_approved_at IS NOT NULL
+  AND order_purchase_timestamp IS NOT NULL
+  AND purchase_date BETWEEN '2016-01-01' AND '2017-01-01';
+
+Average time from approval to carrier handoff (hours):
+- 2016: 317
+- 2017: 72
+- 2018: 71
+
+Average time from carrier handoff to delivery (hours):
+- 2016: 138
+- 2017: 229
+- 2018: 218
+
+Top 10 product categories by orders:
+1. Bed, Bath & Table - 9,417 orders
+2. Health & Beauty - 8,836 orders
+3. Sports & Leisure - 7,720 orders
+4. Computers & Accessories - 6,689 orders
+5. Furniture & Decor - 6,449 orders
+6. Housewares - 5,884 orders
+7. Watches & Gifts - 5,624 orders
+8. Telephony - 4,199 orders
+9. Auto - 3,897 orders
+10. Toys - 3,886 orders
+SQL:
+SELECT 
+  COUNT(*) AS items,
+  COUNT(DISTINCT i.order_id) AS number_of_orders,
+  tr.string_field_1 AS name_en
+FROM Case_ecom.order_items AS i
+JOIN Case_ecom.products AS p
+  ON p.product_id = i.product_id
+JOIN Case_ecom.category_transaction AS tr
+  ON p.product_category_name = tr.string_field_0
+GROUP BY p.product_category_name, tr.string_field_1
+ORDER BY number_of_orders DESC
+LIMIT 10;
+
+Seasonal orders (2017-2018):
+- Autumn 2017: 16,460
+- Spring 2017: 8,786
+- Spring 2018: 21,023
+- Summer 2017: 11,602
+- Summer 2018: 18,971
+- Winter 2017: 8,253
+- Winter 2018: 13,997
+SQL: (example for Winter 2017)
+SELECT 'Winter2017' AS season, COUNT(DISTINCT order_id) AS total_orders
+FROM Case_ecom.clean_table
+WHERE EXTRACT(MONTH FROM purchase_date) IN (12, 1, 2)
+  AND EXTRACT(YEAR FROM purchase_date) = 2017
+  AND purchase_date IS NOT NULL
+... (similar for other seasons)
+
+Average order value by year:
+- 2016: 183.3
+- 2017: 160.2
+- 2018: 160.7
+SQL:
+SELECT
+  EXTRACT(YEAR FROM ct.purchase_date) AS year,
+  ROUND(SUM(ot.price + ot.freight_value) / COUNT(DISTINCT ot.order_id), 1) AS avg_value
+FROM Case_ecom.order_items AS ot
+JOIN Case_ecom.clean_table AS ct
+  ON ct.order_id = ot.order_id
+GROUP BY year
+ORDER BY year;
+
+Canceled orders and percentage by year:
+- 2016: 329 orders (7.9%)
+- 2017: 45,101 orders (0.6%)
+- 2018: 54,011 orders (0.6%)
+SQL:
+SELECT
+  EXTRACT(YEAR FROM purchase_date) AS year,
+  COUNT(DISTINCT order_id) AS canceled_orders,
+  ROUND(COUNTIF(order_status = 'canceled') * 100 / COUNT(*), 1) AS canceled_orders_perc
+FROM Case_ecom.clean_table
+GROUP BY year;
+
+Top 10 customers by number of orders:
+1. 17 orders - 8d50f5eadf50201ccdcedfb9e2ac8455
+2. 9 orders - 3e43e6105506432c953e165fb2acf44c
+3. 7 orders - 1b6c7548a2a1f9037c1fd3ddfed95f33
+4. 7 orders - 6469f99c1f9dfae7733b25662e7f1782
+5. 7 orders - ca77025e7201e3b30c44b472ff346268
+6. 6 orders - dc813062e0fc23409cd255f7f53c7074
+7. 6 orders - 12f5d6e1cbf93dafd9dcc19095df0b3d
+8. 6 orders - 63cfc61cee11cbe306bff5857d00bfe4
+9. 6 orders - de34b16117594161a6a89c50b289d35a
+10. 6 orders - 47c1a3033b8b77b3ab6e109eb4d5fdf3
+SQL:
+SELECT COUNT(DISTINCT o.order_id) AS orders, e.customer_unique_id
+FROM Case_ecom.orders_dataset o
+JOIN Case_ecom.ecom AS e
+  ON o.customer_id = e.customer_id
+GROUP BY e.customer_unique_id
+ORDER BY orders DESC
+LIMIT 10;
